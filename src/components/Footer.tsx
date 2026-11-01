@@ -13,7 +13,7 @@ import Link from "next/link";
  */
 export default function Footer() {
   return (
-    <footer className="relative mt-auto w-full overflow-hidden border-t border-white/10 bg-[#166534] text-white">
+    <footer className="border-t-4 border-[#D97706] bg-[#1F2937] text-white">
       {/* Decorative background glows */}
       <div
         aria-hidden="true"
@@ -64,8 +64,7 @@ export default function Footer() {
             </Link>
 
             <p className="mt-4 max-w-xs text-sm leading-6 text-gray-200">
-              Your quiet corner for endless reading. Discover, borrow, and
-              read.
+              Your quiet corner for endless reading. Discover, borrow, and read.
             </p>
           </div>
 
