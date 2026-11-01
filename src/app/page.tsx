@@ -1,4 +1,5 @@
 import Banner from "@/components/Banner";
+import HowItWorks from "@/components/Howitworks";
 import NewArrivalsPage from "@/components/NewArrivals";
 import { Suspense } from "react";
 
@@ -8,6 +9,7 @@ export default function Home() {
       <Suspense fallback={<div className="min-h-107 bg-[#FDFBF7]" />}>
         <Banner />
         <NewArrivalsPage/>
+        <HowItWorks/>
       </Suspense>
 
     </div>
