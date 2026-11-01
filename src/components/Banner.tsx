@@ -146,6 +146,7 @@ export default function Banner() {
           </SwiperSlide>
         ))}
       </Swiper>
+      
     </section>
   );
 }
