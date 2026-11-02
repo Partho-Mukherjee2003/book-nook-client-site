@@ -5,7 +5,15 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 type Borrow = {
   _id: string;
   bookId: string;
@@ -28,7 +36,7 @@ const formatDate = (date: string) =>
 export default function MyBorrows() {
   const { data: session, isPending } = authClient.useSession();
   const email = session?.user?.email;
-
+  const [confirmBorrow, setConfirmBorrow] = useState<Borrow | null>(null);
   const [borrows, setBorrows] = useState<Borrow[]>([]);
   const [loading, setLoading] = useState(true);
   const [returningId, setReturningId] = useState<string | null>(null);
@@ -43,24 +51,22 @@ export default function MyBorrows() {
       .finally(() => setLoading(false));
   }, [email]);
 
-  const handleReturn = async (id: string) => {
-    if (!email) return;
+  const handleReturn = async () => {
+    if (!email || !confirmBorrow) return;
 
     try {
-      setReturningId(id);
-      const res = await fetch(`${API}/borrows/${id}/return`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      setReturningId(confirmBorrow._id);
+      const res = await fetch(
+        `${API}/borrows/${confirmBorrow._id}?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" },
+      );
       const data = await res.json();
 
       if (data.success) {
-        // update the row locally, no need to refetch
-        setBorrows((prev) =>
-          prev.map((b) => (b._id === id ? { ...b, status: "returned" } : b)),
-        );
+        // remove the row from the table
+        setBorrows((prev) => prev.filter((b) => b._id !== confirmBorrow._id));
         toast.success("Book returned successfully!");
+        setConfirmBorrow(null);
       } else {
         toast.error(data.message || "Failed to return the book.");
       }
@@ -103,7 +109,7 @@ export default function MyBorrows() {
       </h1>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-160 text-left text-sm">
           <thead className="bg-amber-50 text-gray-700">
             <tr>
               <th className="px-4 py-3 font-semibold">Image</th>
@@ -143,7 +149,7 @@ export default function MyBorrows() {
                       <Button
                         size="sm"
                         disabled={isReturning}
-                        onClick={() => handleReturn(b._id)}
+                        onClick={() => setConfirmBorrow(b)}
                         className="bg-[#D97706] text-white hover:bg-orange-700"
                       >
                         {isReturning ? (
@@ -163,6 +169,38 @@ export default function MyBorrows() {
           </tbody>
         </table>
       </div>
+            <AlertDialog
+        open={!!confirmBorrow}
+        onOpenChange={(open) => !open && !returningId && setConfirmBorrow(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Return this book?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to return &ldquo;{confirmBorrow?.bookTitle}&rdquo;.
+              It will be removed from your borrowed list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!returningId}>Cancel</AlertDialogCancel>
+            <Button
+              disabled={!!returningId}
+              onClick={handleReturn}
+              className="bg-[#D97706] text-white hover:bg-orange-700"
+            >
+              {returningId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Returning...
+                </>
+              ) : (
+                "Yes, return"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
+
   );
 }
