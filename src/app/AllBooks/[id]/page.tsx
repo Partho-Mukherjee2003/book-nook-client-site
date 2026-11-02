@@ -60,7 +60,7 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-12">
       {/* ---------------- Cover ---------------- */}
       <div className="lg:col-span-2">
-        <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl bg-[#F3EFE6] shadow-xl shadow-[#166534]/10 ring-1 ring-[#166534]/10 lg:sticky lg:top-24">
+        <div className="relative mx-auto aspect-4/5 w-full max-w-md overflow-hidden rounded-2xl bg-[#F3EFE6] shadow-xl shadow-[#166534]/10 ring-1 ring-[#166534]/10 lg:sticky lg:top-24">
           {hasImage ? (
             <Image
               src={book.image}
