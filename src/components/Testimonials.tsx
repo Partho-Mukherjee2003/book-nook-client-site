@@ -9,6 +9,13 @@
  * - Card background:    #104d26
  * - Stars / accent:     #D97706
  */
+//Title
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Testimonials",
+};
+
 
 type Review = {
   name: string;

@@ -1,3 +1,10 @@
+//Title
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Footer",
+};
+
 import Link from "next/link";
 
 /**
