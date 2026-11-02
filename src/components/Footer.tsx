@@ -13,7 +13,7 @@ import Link from "next/link";
  */
 export default function Footer() {
   return (
-    <footer className="border-t-4 border-[#D97706] bg-[#1F2937] text-white">
+    <footer className="relative overflow-hidden border-t-4 border-[#D97706] bg-[#1F2937] text-white">
       {/* Decorative background glows */}
       <div
         aria-hidden="true"

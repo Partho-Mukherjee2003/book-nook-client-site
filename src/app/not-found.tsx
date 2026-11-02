@@ -302,7 +302,7 @@ export default function NotFound() {
           Back to Home
         </Link>
 
-        <Link href="/books" className="bn-nf-btn bn-nf-btn-outline">
+        <Link href="/AllBooks" className="bn-nf-btn bn-nf-btn-outline">
           Browse Books
         </Link>
       </div>

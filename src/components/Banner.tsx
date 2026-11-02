@@ -72,7 +72,7 @@ export default function Banner() {
 
                   <div className="mt-8">
                     <Link
-                      href="/books"
+                      href="/AllBooks"
                       className="group inline-flex items-center gap-2 rounded-full bg-[#D97706] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#D97706]/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#D97706]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FDFBF7]"
                     >
                       Browse Books
@@ -146,7 +146,7 @@ export default function Banner() {
           </SwiperSlide>
         ))}
       </Swiper>
-      
+
     </section>
   );
 }

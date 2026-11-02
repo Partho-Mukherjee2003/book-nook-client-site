@@ -18,7 +18,7 @@ import { useState } from "react";
 // All navigation links live here. Add / remove / rename links in one place.
 const linkes = [
   { href: "/", label: "Home" },
-  { href: "/books", label: "All Books" },
+  { href: "/AllBooks", label: "All Books" },
   { href: "/books/add", label: "Add Book" },
   { href: "/my-books", label: "My Books" },
   { href: "/my-borrows", label: "My Borrows" },

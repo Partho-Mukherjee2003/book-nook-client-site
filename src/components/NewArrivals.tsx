@@ -110,10 +110,10 @@ const NewArrivalsPage = async()=> {
         {/* See All Books Action */}
         <div className="mt-12 flex justify-center">
           <Link
-            href="/books"
+            href="/AllBooks"
             className="group inline-flex items-center gap-2 rounded-full bg-[#D97706] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#D97706]/25 transition-colors duration-200 hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FDFBF7]"
           >
-            See All Books
+            See All Books 
             <svg
               viewBox="0 0 24 24"
               fill="none"
