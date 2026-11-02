@@ -1,0 +1,18 @@
+export const API = "http://localhost:5000";
+
+export const CATEGORIES = ["Fiction", "Science", "History", "Kids", "Others"];
+
+// Upload an image file to imgbb and return its public URL
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(
+    `https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`,
+    { method: "POST", body: formData },
+  );
+  const data = await res.json();
+
+  if (!data.success) throw new Error("Image upload failed");
+  return data.data.url as string;
+}

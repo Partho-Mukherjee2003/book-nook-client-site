@@ -111,7 +111,7 @@ export default function Footer() {
 
               <li>
                 <Link
-                  href="/books"
+                  href="/AllBooks"
                   className="group inline-flex items-center gap-2 rounded text-sm text-gray-200 transition-colors duration-200 hover:text-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
                 >
                   <svg
@@ -132,7 +132,7 @@ export default function Footer() {
 
               <li>
                 <Link
-                  href="/books/add"
+                  href="/new"
                   className="group inline-flex items-center gap-2 rounded text-sm text-gray-200 transition-colors duration-200 hover:text-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
                 >
                   <svg
