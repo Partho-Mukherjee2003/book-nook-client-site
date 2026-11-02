@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
-import { Button } from "@/components/ui/button";
+import BorrowBooks from "@/app/borrow/BorrowBooks";
 
 type Book = {
   _id: string;
@@ -156,25 +156,7 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
 
           {/* Borrow button */}
           <div className="mt-8">
-            <Button
-              type="button"
-              className="h-12 w-full gap-2 bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="h-5 w-5"
-              >
-                <path d="M12 7.25C10.6 6.05 8.8 5.4 6.75 5.4H4.5A1.5 1.5 0 0 0 3 6.9v11.1a1.5 1.5 0 0 0 1.5 1.5h2.25c2.05 0 3.85.65 5.25 1.85 1.4-1.2 3.2-1.85 5.25-1.85h2.25a1.5 1.5 0 0 0 1.5-1.5V6.9a1.5 1.5 0 0 0-1.5-1.5h-2.25c-2.05 0-3.85.65-5.25 1.85Z" />
-                <path d="M12 7.25v14.1" />
-              </svg>
-              Borrow This Book
-            </Button>
+            <BorrowBooks book={book} />
           </div>
         </div>
       </div>

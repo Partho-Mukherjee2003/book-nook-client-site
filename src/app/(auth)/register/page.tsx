@@ -17,6 +17,7 @@ const labelClass = "font-semibold text-[#1F2937]";
 const RegisterPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,8 +74,28 @@ const RegisterPage = () => {
 
     setTimeout(() => router.push("/login"), 1200);
 
-    
+
   };
+// login with google
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: '/',
+    });
+
+    // Success hole browser Google-er page-e chole jay, tai ekhane shudhu error handle
+    if (error) {
+      setGoogleLoading(false);
+      toast.error("Google login failed", {
+        description: error.message || "Could not sign in with Google.",
+      });
+    }
+      toast.success("successfully logged in with google");
+  };
+
+
 
   return (
     <section className="relative overflow-hidden bg-[#FDFBF7] px-4 py-12 sm:py-16">
@@ -220,10 +241,12 @@ const RegisterPage = () => {
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full gap-3 border-[#1F2937]/15 text-base font-semibold text-[#1F2937] hover:border-[#166534]/40 hover:bg-[#166534]/5"
+            onClick={handleGoogleLogin}
+            disabled={loading || googleLoading}
+            className="h-11 w-full gap-3 border-[#1F2937]/15 text-base font-semibold text-[#1F2937] hover:border-[#166534]/40 hover:bg-[#166534]/5 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <FcGoogle className="h-5 w-5" />
-            Continue with Google
+            {googleLoading ? "Redirecting..." : "Continue with Google"}
           </Button>
         </div>
 
