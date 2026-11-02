@@ -1,19 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-
-/**
- * BookNook — Navbar
- *
- * Design tokens:
- * - Navbar background: #166534
- * - Accent / hover:    #D97706
- * - Navbar text:       white
- */
 
 // All navigation links live here. Add / remove / rename links in one place.
 const linkes = [
@@ -23,6 +14,12 @@ const linkes = [
   { href: "/my-books", label: "My Books" },
   { href: "/my-borrows", label: "My Borrows" },
 ];
+
+// Home ("/") shudhu exact match, baki link nested path-eo active thakbe
+const isLinkActive = (pathname: string, href: string) =>
+  href === "/"
+    ? pathname === "/"
+    : pathname === href || pathname.startsWith(`${href}/`);
 
 // Profile photo: image thakle seta, na thakle naam-er prothom okkhor
 type AvatarUser = { name?: string | null; image?: string | null };
@@ -50,6 +47,7 @@ function Avatar({ user, size }: { user: AvatarUser; size: string }) {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -146,19 +144,28 @@ export default function Navbar() {
         </Link>
 
         {/* ==========================================================
-            2. DESKTOP NAVIGATION LINKS
+            2. DESKTOP NAVIGATION LINKS (with active state)
         ========================================================== */}
         <ul className="hidden items-center gap-1 lg:flex">
-          {linkes.map((link) => (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                className="block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#D97706] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
+          {linkes.map((link) => {
+            const active = isLinkActive(pathname, link.href);
+
+            return (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`block whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534] ${
+                    active
+                      ? "bg-[#D97706] font-semibold shadow-sm shadow-black/20"
+                      : "hover:bg-[#D97706]/80"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         {/* ==========================================================
@@ -208,7 +215,11 @@ export default function Navbar() {
                       href="/profile"
                       role="menuitem"
                       onClick={closeDropdown}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[#166534]/10 hover:text-[#166534] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]"
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[#166534]/10 hover:text-[#166534] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534] ${
+                        isLinkActive(pathname, "/profile")
+                          ? "bg-[#166534]/10 text-[#166534]"
+                          : ""
+                      }`}
                     >
                       <svg
                         viewBox="0 0 24 24"
@@ -257,13 +268,23 @@ export default function Navbar() {
             <div className="flex items-center gap-1.5">
               <Link
                 href="/login"
-                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#D97706] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
+                aria-current={
+                  isLinkActive(pathname, "/login") ? "page" : undefined
+                }
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534] ${
+                  isLinkActive(pathname, "/login")
+                    ? "bg-white/15 font-semibold"
+                    : "hover:bg-[#D97706]"
+                }`}
               >
                 Login
               </Link>
 
               <Link
                 href="/register"
+                aria-current={
+                  isLinkActive(pathname, "/register") ? "page" : undefined
+                }
                 className="whitespace-nowrap rounded-lg bg-[#D97706] px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/20 transition-colors duration-200 hover:bg-[#D97706]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
               >
                 Register
@@ -312,7 +333,7 @@ export default function Navbar() {
       </nav>
 
       {/* ==========================================================
-          5. MOBILE NAVIGATION PANEL
+          5. MOBILE NAVIGATION PANEL (with active state)
       ========================================================== */}
       {isMobileMenuOpen && (
         <nav
@@ -321,29 +342,40 @@ export default function Navbar() {
           className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/10 bg-[#166534] shadow-2xl shadow-black/30 animate-in fade-in slide-in-from-top-2 duration-200 lg:hidden"
         >
           <ul className="flex flex-col gap-1 p-4">
-            {linkes.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className="group flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
-                >
-                  <span>{link.label}</span>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                    className="h-4 w-4 text-white/50 transition-colors duration-200 group-hover:text-white"
+            {linkes.map((link) => {
+              const active = isLinkActive(pathname, link.href);
+
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={closeMobileMenu}
+                    aria-current={active ? "page" : undefined}
+                    className={`group flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-white transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534] ${
+                      active
+                        ? "bg-[#D97706] font-semibold"
+                        : "hover:bg-[#D97706]/80"
+                    }`}
                   >
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </Link>
-              </li>
-            ))}
+                    <span>{link.label}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                      className={`h-4 w-4 transition-colors duration-200 group-hover:text-white ${
+                        active ? "text-white" : "text-white/50"
+                      }`}
+                    >
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
 
           {/* Mobile auth actions */}
@@ -374,7 +406,14 @@ export default function Navbar() {
                 <Link
                   href="/profile"
                   onClick={closeMobileMenu}
-                  className="flex items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:border-[#D97706] hover:bg-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
+                  aria-current={
+                    isLinkActive(pathname, "/profile") ? "page" : undefined
+                  }
+                  className={`flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:border-[#D97706] hover:bg-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534] ${
+                    isLinkActive(pathname, "/profile")
+                      ? "border-[#D97706] bg-[#D97706]"
+                      : "border-white/20"
+                  }`}
                 >
                   My Profile
                 </Link>

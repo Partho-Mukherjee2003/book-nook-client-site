@@ -72,6 +72,8 @@ const RegisterPage = () => {
     });
 
     setTimeout(() => router.push("/login"), 1200);
+
+    
   };
 
   return (
