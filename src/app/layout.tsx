@@ -5,6 +5,7 @@ import { Josefin_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Toaster } from "sonner";
 
 const josefinSans = Josefin_Sans({
   variable: "--font-josefin-sans",
@@ -34,6 +35,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
 
         <Footer />
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: "rounded-xl border shadow-xl font-sans",
+              title: "font-semibold",
+              description: "text-sm",
+            },
+          }}
+        />
       </body>
     </html>
   );

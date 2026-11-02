@@ -1,23 +1,77 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
 
 const inputClass =
   "h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30";
 const labelClass = "font-semibold text-[#1F2937]";
 
 const RegisterPage = () => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const formValues = Object.fromEntries(formData.entries());
 
-    console.log(data); // { name, email, photoURL, password }
+    const name = formValues.name as string;
+    const email = formValues.email as string;
+    const photoURL = formValues.photoURL as string;
+    const password = formValues.password as string;
+
+    // Password validation
+    if (password.length < 6) {
+      toast.error("Password too short", {
+        description: "Password must be at least 6 characters long.",
+      });
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      toast.error("Missing uppercase letter", {
+        description: "Password must have at least one uppercase letter.",
+      });
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      toast.error("Missing lowercase letter", {
+        description: "Password must have at least one lowercase letter.",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await authClient.signUp.email({
+      name,
+      email,
+      password,
+      image: photoURL || undefined,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error("Registration failed", {
+        description: error.message || "Something went wrong. Please try again.",
+      });
+      return;
+    }
+
+    toast.success("Account created!", {
+      description: "Welcome to BookNook. Redirecting you to login...",
+    });
+
+    setTimeout(() => router.push("/login"), 1200);
   };
 
   return (
@@ -138,15 +192,14 @@ const RegisterPage = () => {
                 </ul>
               </Field>
 
-              {/* Password error / toast message goes here later */}
-
               {/* Register button */}
               <Field>
                 <Button
                   type="submit"
-                  className="h-11 w-full bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700"
+                  disabled={loading}
+                  className="h-11 w-full bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Register
+                  {loading ? "Creating account..." : "Register"}
                 </Button>
               </Field>
             </FieldGroup>

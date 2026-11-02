@@ -1,19 +1,82 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authClient } from "@/lib/auth-client";
+
+const inputClass =
+  "h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30";
+const labelClass = "font-semibold text-[#1F2937]";
+
+// Login-er por kothay jabe: /login?redirect=/book/123 hole oikhane, na hole Home
+const getRedirectPath = () => {
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  // Shudhu nijer site-er path allow koro (open redirect theke bachar jonno)
+  return redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+    ? redirect
+    : "/";
+};
 
 const LogInPage = () => {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const formValues = Object.fromEntries(formData.entries());
 
-    console.log(data); // { email: "...", password: "..." }
+    const email = formValues.email as string;
+    const password = formValues.password as string;
+
+    setLoading(true);
+
+    const { error } = await authClient.signIn.email({
+      email,
+      password,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      toast.error("Login failed", {
+        description:
+          error.message || "Invalid email or password. Please try again.",
+      });
+      return;
+    }
+
+    toast.success("Welcome back!", {
+      description: "You have logged in successfully.",
+    });
+
+    router.push(getRedirectPath());
+    router.refresh();
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+
+    const { error } = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: getRedirectPath(),
+    });
+
+    // Success hole browser Google-er page-e chole jay, tai ekhane shudhu error handle
+    if (error) {
+      setGoogleLoading(false);
+      toast.error("Google login failed", {
+        description: error.message || "Could not sign in with Google.",
+      });
+    }
   };
 
   return (
@@ -61,10 +124,7 @@ const LogInPage = () => {
             <FieldGroup>
               {/* Email */}
               <Field>
-                <FieldLabel
-                  htmlFor="login-email"
-                  className="font-semibold text-[#1F2937]"
-                >
+                <FieldLabel htmlFor="login-email" className={labelClass}>
                   Email
                 </FieldLabel>
                 <Input
@@ -73,17 +133,14 @@ const LogInPage = () => {
                   type="email"
                   placeholder="name@example.com"
                   required
-                  className="h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30"
+                  className={inputClass}
                 />
               </Field>
 
               {/* Password */}
               <Field>
                 <div className="flex items-center justify-between">
-                  <FieldLabel
-                    htmlFor="login-password"
-                    className="font-semibold text-[#1F2937]"
-                  >
+                  <FieldLabel htmlFor="login-password" className={labelClass}>
                     Password
                   </FieldLabel>
                   <Link
@@ -99,19 +156,18 @@ const LogInPage = () => {
                   type="password"
                   placeholder="Enter your password"
                   required
-                  className="h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30"
+                  className={inputClass}
                 />
               </Field>
-
-              {/* Error message / toast goes here later */}
 
               {/* Login button */}
               <Field>
                 <Button
                   type="submit"
-                  className="h-11 w-full bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700"
+                  disabled={loading || googleLoading}
+                  className="h-11 w-full bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  Login
+                  {loading ? "Logging in..." : "Login"}
                 </Button>
               </Field>
             </FieldGroup>
@@ -130,10 +186,12 @@ const LogInPage = () => {
           <Button
             type="button"
             variant="outline"
-            className="h-11 w-full gap-3 border-[#1F2937]/15 text-base font-semibold text-[#1F2937] hover:border-[#166534]/40 hover:bg-[#166534]/5"
+            onClick={handleGoogleLogin}
+            disabled={loading || googleLoading}
+            className="h-11 w-full gap-3 border-[#1F2937]/15 text-base font-semibold text-[#1F2937] hover:border-[#166534]/40 hover:bg-[#166534]/5 disabled:cursor-not-allowed disabled:opacity-70"
           >
             <FcGoogle className="h-5 w-5" />
-            Continue with Google
+            {googleLoading ? "Redirecting..." : "Continue with Google"}
           </Button>
         </div>
 
