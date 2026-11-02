@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
@@ -31,7 +31,7 @@ function Avatar({ user, size }: { user: AvatarUser; size: string }) {
   const initial = (user.name?.trim().charAt(0) || "U").toUpperCase();
 
   return user.image ? (
-    // Plain <img> use korechi, jate je kono host-er photo URL kaj kore
+    // Plain <img>: je kono host-er photo URL kaj korbe
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={user.image}
@@ -51,13 +51,40 @@ function Avatar({ user, size }: { user: AvatarUser; size: string }) {
 export default function Navbar() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Better Auth session: logged-in hole data.user thake
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const closeDropdown = () => setIsDropdownOpen(false);
+
+  // Dropdown-er baire click korle ba Esc chaple bondho
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsDropdownOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isDropdownOpen]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -73,6 +100,7 @@ export default function Navbar() {
       return;
     }
 
+    closeDropdown();
     closeMobileMenu();
     toast.success("Logged out", {
       description: "You have been logged out successfully.",
@@ -139,29 +167,90 @@ export default function Navbar() {
         <div className="hidden items-center gap-3 lg:flex">
           {isPending ? (
             /* Session load hocche: layout jeno lafiye na othe */
-            <div className="h-10 w-44 animate-pulse rounded-full bg-white/10" />
+            <div className="h-10 w-10 animate-pulse rounded-full bg-white/10" />
           ) : user ? (
-            /* -------- LOGGED-IN: Profile + Logout -------- */
-            <div className="flex items-center gap-2">
-              <Link
-                href="/profile"
-                aria-label="Go to your profile"
-                className="group flex items-center gap-2.5 rounded-full border border-white/15 bg-white/5 py-1 pl-1 pr-4 transition-colors duration-200 hover:border-[#D97706] hover:bg-[#D97706]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
-              >
-                <Avatar user={user} size="h-9 w-9" />
-                <span className="max-w-[9rem] truncate text-sm font-semibold text-white">
-                  {user.name}
-                </span>
-              </Link>
-
+            /* -------- LOGGED-IN: Photo + Dropdown -------- */
+            <div ref={dropdownRef} className="relative">
               <button
                 type="button"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="whitespace-nowrap rounded-lg bg-[#D97706] px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-black/20 transition-colors duration-200 hover:bg-[#D97706]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={() => setIsDropdownOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={isDropdownOpen}
+                aria-label="Open profile menu"
+                className="flex items-center rounded-full transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
               >
-                {loggingOut ? "Logging out..." : "Logout"}
+                <Avatar user={user} size="h-10 w-10" />
               </button>
+
+              {isDropdownOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-3 w-64 origin-top-right overflow-hidden rounded-xl border border-[#166534]/10 bg-white text-[#1F2937] shadow-2xl shadow-black/25 animate-in fade-in slide-in-from-top-2 duration-150"
+                >
+                  {/* User info */}
+                  <div className="flex items-center gap-3 border-b border-[#166534]/10 bg-[#FDFBF7] px-4 py-4">
+                    <Avatar user={user} size="h-11 w-11" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-[#166534]">
+                        {user.name}
+                      </p>
+                      {user.email && (
+                        <p className="truncate text-xs text-[#1F2937]/60">
+                          {user.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="p-2">
+                    <Link
+                      href="/profile"
+                      role="menuitem"
+                      onClick={closeDropdown}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-[#166534]/10 hover:text-[#166534] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534]"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+                      </svg>
+                      My Profile
+                    </Link>
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#D97706] transition-colors duration-150 hover:bg-[#D97706]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D97706] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <path d="m16 17 5-5-5-5M21 12H9" />
+                      </svg>
+                      {loggingOut ? "Logging out..." : "Logout"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             /* -------- LOGGED-OUT: Login + Register -------- */
@@ -266,22 +355,28 @@ export default function Navbar() {
             {isPending ? (
               <div className="h-12 w-full animate-pulse rounded-lg bg-white/10" />
             ) : user ? (
-              /* -------- LOGGED-IN (mobile) -------- */
+              /* -------- LOGGED-IN (mobile): dropdown-er jinis menu-te-i -------- */
               <div className="space-y-3">
+                <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 p-3">
+                  <Avatar user={user} size="h-11 w-11" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {user.name}
+                    </p>
+                    {user.email && (
+                      <p className="truncate text-xs text-white/60">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <Link
                   href="/profile"
                   onClick={closeMobileMenu}
-                  className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 p-3 transition-colors duration-200 hover:border-[#D97706] hover:bg-[#D97706]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
+                  className="flex items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:border-[#D97706] hover:bg-[#D97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#166534]"
                 >
-                  <Avatar user={user} size="h-11 w-11" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-white">
-                      {user.name}
-                    </span>
-                    <span className="block truncate text-xs text-white/60">
-                      View profile
-                    </span>
-                  </span>
+                  My Profile
                 </Link>
 
                 <button
