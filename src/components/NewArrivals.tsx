@@ -91,7 +91,7 @@ const NewArrivalsPage = async()=> {
                 {/* Full-width Action */}
                 <div className="mt-auto pt-5">
                   <Link
-                    href={`/book/${book._id}`}
+                    href={`/AllBooks/${book._id}`}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#D97706] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#166534] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                   >
                     View Details
