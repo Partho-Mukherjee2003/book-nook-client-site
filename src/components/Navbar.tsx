@@ -19,7 +19,7 @@ import { useState } from "react";
 const linkes = [
   { href: "/", label: "Home" },
   { href: "/AllBooks", label: "All Books" },
-  { href: "/books/add", label: "Add Book" },
+  { href: "/AllBooks/new", label: "Add Book" },
   { href: "/my-books", label: "My Books" },
   { href: "/my-borrows", label: "My Borrows" },
 ];
