@@ -1,20 +1,26 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { auth } from './lib/auth';
+// src/proxy.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-// This function can be marked `async` if using `await` inside
-export async function proxy(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await request.headers,
-  })
-  const user = session?.user
+export function proxy(request: NextRequest) {
+  const sessionCookie = getSessionCookie(request);
 
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  if (!sessionCookie) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
-}
 
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/new', '/my-books', '/my-borrows','/AllBooks/:id'],
-}
+  matcher: [
+    "/new",
+    "/add-book",
+    "/my-books",
+    "/my-borrows",
+    "/AllBooks/:id",
+  ],
+};
