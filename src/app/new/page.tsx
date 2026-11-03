@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { API, CATEGORIES, uploadImage } from "@/lib/book-utils";
+import { API, CATEGORIES, uploadImage, getAuthHeaders } from "@/lib/book-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,10 +56,13 @@ export default function AddBookPage() {
       // 1. upload image to imgbb
       const imageUrl = await uploadImage(file);
 
-      // 2. save the book in our database
+      // 2. get a fresh JWT for the Authorization header
+      const authHeaders = await getAuthHeaders();
+
+      // 3. save the book in our database (email comes from the token on the server)
       const res = await fetch(`${API}/my-books`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
           title,
           author,
@@ -67,7 +70,6 @@ export default function AddBookPage() {
           image: imageUrl,
           description,
           userName: user.name,
-          userEmail: user.email,
         }),
       });
       const data = await res.json();
@@ -144,7 +146,10 @@ export default function AddBookPage() {
 
           <div className="space-y-2">
             <Label>Category</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v ?? "")}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>

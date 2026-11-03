@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { API, CATEGORIES, uploadImage } from "@/lib/book-utils";
+import { API, CATEGORIES, uploadImage, getAuthHeaders } from "@/lib/book-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -56,12 +55,10 @@ const formatDate = (date: string) =>
 /* ---------------------------- Edit form (modal) ---------------------------- */
 function EditBookDialog({
   book,
-  email,
   onClose,
   onSaved,
 }: {
   book: MyBook;
-  email: string;
   onClose: () => void;
   onSaved: (updated: MyBook) => void;
 }) {
@@ -89,18 +86,12 @@ function EditBookDialog({
       setSaving(true);
       // upload a new image only if the user picked one, otherwise keep the old URL
       const image = file ? await uploadImage(file) : book.image;
+      const authHeaders = await getAuthHeaders();
 
       const res = await fetch(`${API}/my-books/${book._id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          author,
-          category,
-          image,
-          description,
-          email,
-        }),
+        headers: { "Content-Type": "application/json", ...authHeaders },
+        body: JSON.stringify({ title, author, category, image, description }),
       });
       const data = await res.json();
 
@@ -247,25 +238,34 @@ export default function MyBooksPage() {
     if (!isPending && !session?.user) router.push("/login"); // change to your login route
   }, [isPending, session, router]);
 
+  // Load only the logged-in user's books (server reads the email from the JWT)
   useEffect(() => {
     if (!email) return;
 
-    fetch(`${API}/my-books?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setBooks(Array.isArray(data) ? data : []))
-      .catch(() => toast.error("Could not load your books."))
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const authHeaders = await getAuthHeaders();
+        const res = await fetch(`${API}/my-books`, { headers: authHeaders });
+        const data = await res.json();
+        setBooks(Array.isArray(data) ? data : []);
+      } catch {
+        toast.error("Could not load your books.");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [email]);
 
   const handleDelete = async () => {
-    if (!deleting || !email) return;
+    if (!deleting) return;
 
     try {
       setDeleteLoading(true);
-      const res = await fetch(
-        `${API}/my-books/${deleting._id}?email=${encodeURIComponent(email)}`,
-        { method: "DELETE" },
-      );
+      const authHeaders = await getAuthHeaders();
+      const res = await fetch(`${API}/my-books/${deleting._id}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
       const data = await res.json();
 
       if (data.success) {
@@ -276,8 +276,10 @@ export default function MyBooksPage() {
       } else {
         toast.error(data.message || "Failed to delete the book.");
       }
-    } catch {
-      toast.error("Could not reach the server.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not reach the server.",
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -298,8 +300,12 @@ export default function MyBooksPage() {
     <section className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">My Books</h1>
-        <Button  className="bg-[#D97706] text-white hover:bg-orange-700">
-          <Link href="/new">Add New Book</Link>
+        <Button
+          nativeButton={false}
+          render={<Link href="/add-book" />}
+          className="bg-[#D97706] text-white hover:bg-orange-700"
+        >
+          Add New Book
         </Button>
       </div>
 
@@ -373,7 +379,6 @@ export default function MyBooksPage() {
         <EditBookDialog
           key={editing._id}
           book={editing}
-          email={email}
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
             setBooks((prev) =>
@@ -401,12 +406,9 @@ export default function MyBooksPage() {
             <AlertDialogCancel disabled={deleteLoading}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction
+            <Button
               disabled={deleteLoading}
-              onClick={(e) => {
-                e.preventDefault(); // keep the modal open until the request finishes
-                handleDelete();
-              }}
+              onClick={handleDelete}
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {deleteLoading ? (
@@ -417,7 +419,7 @@ export default function MyBooksPage() {
               ) : (
                 "Yes, delete"
               )}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

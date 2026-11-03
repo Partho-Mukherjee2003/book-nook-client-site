@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import React, { Suspense } from "react";
 import BorrowBooks from "@/app/borrow/BorrowBooks";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
 
 type Book = {
   _id: string;
@@ -16,7 +19,18 @@ type Book = {
 };
 
 const getBook = async (id: string): Promise<Book> => {
+  // jwt token retrive
+  const token = await auth.api.getToken({
+    headers: await headers(),
+  });
+  console.log("token", token);
+
+
+
   const res = await fetch(`http://localhost:5000/allbooks/${id}`, {
+    headers: {
+      authorization: `Bearer ${token?.token}`,
+    },
     cache: "no-store",
   });
 
@@ -24,10 +38,10 @@ const getBook = async (id: string): Promise<Book> => {
   if (!res.ok) throw new Error("Failed to fetch book details");
 
   return res.json();
-};
+};;
 
 /* ------------------------------------------------------------------
-   Loading skeleton
+  Loading skeleton
 ------------------------------------------------------------------ */
 const DetailsSkeleton = () => {
   return (
@@ -55,6 +69,10 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
   const addedBy = book.userName || "BookNook Member";
   const initial = addedBy.charAt(0).toUpperCase();
   const hasImage = typeof book.image === "string" && book.image.length > 0;
+
+
+// console.log("token", token)
+
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-12">

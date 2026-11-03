@@ -1,3 +1,4 @@
+import { authClient } from "@/lib/auth-client";
 export const API = "http://localhost:5000";
 
 export const CATEGORIES = ["Fiction", "Science", "History", "Kids", "Others"];
@@ -15,4 +16,11 @@ export async function uploadImage(file: File): Promise<string> {
 
   if (!data.success) throw new Error("Image upload failed");
   return data.data.url as string;
+}
+
+
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data } = await authClient.token();
+  if (!data?.token) throw new Error("Session expired. Please log in again.");
+  return { Authorization: `Bearer ${data.token}` };
 }
