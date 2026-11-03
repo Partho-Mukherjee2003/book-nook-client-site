@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import React, { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -62,6 +63,11 @@ const BooksSkeleton = () => {
    Data fetching component (async) — wrapped in <Suspense> below
 ------------------------------------------------------------------ */
 const BooksGrid = async () => {
+  // Build-er shomoy na, shudhu request-er shomoy render hobe.
+  // Eta na dile Next.js prerender-er shomoy fetch() ke thamiye rakhe,
+  // ar try/catch oi thamano fetch-ke error hishebe dhore.
+  await connection();
+
   const { books, failed } = await getBooks();
 
   if (failed) {
