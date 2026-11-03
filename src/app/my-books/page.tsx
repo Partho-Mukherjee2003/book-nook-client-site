@@ -5,7 +5,13 @@ import Link from "next/link";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { API, CATEGORIES, uploadImage, getAuthHeaders } from "@/lib/book-utils";
+import {
+  CATEGORIES,
+  SessionExpiredError,
+  uploadImage,
+  getAuthHeaders,
+} from "@/lib/book-utils";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,19 +94,17 @@ function EditBookDialog({
       const image = file ? await uploadImage(file) : book.image;
       const authHeaders = await getAuthHeaders();
 
-      const res = await fetch(`${API}/my-books/${book._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...authHeaders },
-        body: JSON.stringify({ title, author, category, image, description }),
-      });
-      const data = await res.json();
+      await apiFetch<{ success?: boolean; message?: string }>(
+        `/my-books/${book._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ title, author, category, image, description }),
+        },
+      );
 
-      if (data.success) {
-        toast.success("Book updated successfully!");
-        onSaved({ ...book, title, author, category, image, description });
-      } else {
-        toast.error(data.message || "Failed to update the book.");
-      }
+      toast.success("Book updated successfully!");
+      onSaved({ ...book, title, author, category, image, description });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Something went wrong.",
@@ -242,18 +246,31 @@ export default function MyBooksPage() {
   useEffect(() => {
     if (!email) return;
 
+    let active = true;
+
     (async () => {
       try {
         const authHeaders = await getAuthHeaders();
-        const res = await fetch(`${API}/my-books`, { headers: authHeaders });
-        const data = await res.json();
-        setBooks(Array.isArray(data) ? data : []);
-      } catch {
-        toast.error("Could not load your books.");
+        const data = await apiFetch<MyBook[]>("/my-books", {
+          headers: authHeaders,
+        });
+        if (active) setBooks(Array.isArray(data) ? data : []);
+      } catch (error) {
+        if (active) {
+          toast.error(
+            error instanceof SessionExpiredError
+              ? "Your session has expired. Please log in again."
+              : "Could not load your books.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, [email]);
 
   const handleDelete = async () => {
@@ -262,23 +279,22 @@ export default function MyBooksPage() {
     try {
       setDeleteLoading(true);
       const authHeaders = await getAuthHeaders();
-      const res = await fetch(`${API}/my-books/${deleting._id}`, {
+      await apiFetch(`/my-books/${deleting._id}`, {
         method: "DELETE",
         headers: authHeaders,
       });
-      const data = await res.json();
 
-      if (data.success) {
-        // remove from the UI (it's already removed from the database)
-        setBooks((prev) => prev.filter((b) => b._id !== deleting._id));
-        toast.success("Book deleted successfully!");
-        setDeleting(null);
-      } else {
-        toast.error(data.message || "Failed to delete the book.");
-      }
+      // remove from the UI (it's already removed from the database)
+      setBooks((prev) => prev.filter((b) => b._id !== deleting._id));
+      toast.success("Book deleted successfully!");
+      setDeleting(null);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not reach the server.",
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Could not reach the server.",
       );
     } finally {
       setDeleteLoading(false);

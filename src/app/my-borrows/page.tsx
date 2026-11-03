@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,8 +25,6 @@ type Borrow = {
   status: "borrowed" | "returned";
 };
 
-const API = `${process.env.NEXT_PUBLIC_API_URL}`;
-
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -44,11 +43,31 @@ export default function MyBorrows() {
   useEffect(() => {
     if (!email) return; // wait until the session loads
 
-    fetch(`${API}/borrows?email=${encodeURIComponent(email)}`)
-      .then((res) => res.json())
-      .then((data) => setBorrows(Array.isArray(data) ? data : []))
-      .catch(() => toast.error("Could not load your borrowed books."))
-      .finally(() => setLoading(false));
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const data = await apiFetch<Borrow[]>(
+          `/borrows?email=${encodeURIComponent(email)}`,
+          { signal: controller.signal },
+        );
+        if (!controller.signal.aborted) {
+          setBorrows(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          toast.error(
+            error instanceof ApiError
+              ? error.message
+              : "Could not load your borrowed books.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
   }, [email]);
 
   const handleReturn = async () => {
@@ -56,22 +75,21 @@ export default function MyBorrows() {
 
     try {
       setReturningId(confirmBorrow._id);
-      const res = await fetch(
-        `${API}/borrows/${confirmBorrow._id}?email=${encodeURIComponent(email)}`,
+      await apiFetch(
+        `/borrows/${confirmBorrow._id}?email=${encodeURIComponent(email)}`,
         { method: "DELETE" },
       );
-      const data = await res.json();
 
-      if (data.success) {
-        // remove the row from the table
-        setBorrows((prev) => prev.filter((b) => b._id !== confirmBorrow._id));
-        toast.success("Book returned successfully!");
-        setConfirmBorrow(null);
-      } else {
-        toast.error(data.message || "Failed to return the book.");
-      }
-    } catch {
-      toast.error("Could not reach the server.");
+      // remove the row from the table
+      setBorrows((prev) => prev.filter((b) => b._id !== confirmBorrow._id));
+      toast.success("Book returned successfully!");
+      setConfirmBorrow(null);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Could not reach the server.",
+      );
     } finally {
       setReturningId(null);
     }

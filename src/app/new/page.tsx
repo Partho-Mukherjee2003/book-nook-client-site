@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import { Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { API, CATEGORIES, uploadImage, getAuthHeaders } from "@/lib/book-utils";
+import { apiFetch, ApiError } from "@/lib/api";
+import {
+  CATEGORIES,
+  SessionExpiredError,
+  uploadImage,
+  getAuthHeaders,
+} from "@/lib/book-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,20 +65,23 @@ export default function AddBookPage() {
       // 2. get a fresh JWT for the Authorization header
       const authHeaders = await getAuthHeaders();
 
-      // 3. save the book in our database (email comes from the token on the server)
-      const res = await fetch(`${API}/my-books`, {
+      // 3. save the book. These keys must match the Express schema exactly.
+      const data = await apiFetch<{
+        success?: boolean;
+        message?: string;
+        insertedId?: string;
+      }>("/my-books", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({
-          title,
-          author,
+          title: title.trim(),
+          author: author.trim(),
           category,
           image: imageUrl,
-          description,
+          description: description.trim(),
           userName: user.name,
         }),
       });
-      const data = await res.json();
 
       if (data.insertedId) {
         toast.success("Book added successfully!", {
@@ -93,6 +102,21 @@ export default function AddBookPage() {
         toast.error(data.message || "Failed to add the book.");
       }
     } catch (error) {
+      // An expired/missing JWT or a 401 from Express both mean "log in again".
+      if (
+        error instanceof SessionExpiredError ||
+        (error instanceof ApiError && error.status === 401)
+      ) {
+        toast.error("Your session has expired.", {
+          description: "Please log in again to add a book.",
+          action: {
+            label: "Log in",
+            onClick: () => router.push("/login?redirect=/new"),
+          },
+        });
+        return;
+      }
+
       toast.error(
         error instanceof Error ? error.message : "Something went wrong.",
       );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, CalendarDays, CalendarCheck, Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,18 +72,19 @@ const BorrowBooks = ({ book }: { book: Book }) => {
       bookImage: book.image,
       userName: user.name,
       userEmail: user.email,
-      borrowDate: borrowDate.toISOString(),
-      returnDate: returnDate.toISOString(),
     };
 
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/borrows`, {
+      const data = await apiFetch<{
+        success?: boolean;
+        message?: string;
+        insertedId?: string;
+      }>("/borrows", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(borrowData),
       });
-      const data = await res.json();
 
       if (data.insertedId) {
         setOpen(false);
@@ -97,10 +99,15 @@ const BorrowBooks = ({ book }: { book: Book }) => {
         // shows server messages such as "You have already borrowed this book"
         toast.error(data.message || "Failed to borrow the book.");
       }
-    } catch {
-      toast.error("Could not reach the server.", {
-        description: "Please check your connection and try again.",
-      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        // 400/404/409 from Express already carry a readable message
+        toast.error(error.message || "Failed to borrow the book.");
+      } else {
+        toast.error("Could not reach the server.", {
+          description: "Please check your connection and try again.",
+        });
+      }
     } finally {
       setLoading(false);
     }

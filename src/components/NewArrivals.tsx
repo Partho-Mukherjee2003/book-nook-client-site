@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
+import { connection } from 'next/server';
+import { apiUrl } from '@/lib/api';
 
 // Newarrivals book type
 type Book = {
@@ -18,11 +20,20 @@ type Book = {
   image: string;
 };
 const getBooks = async (): Promise<Book[]> => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/latestBooks`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to fetch books");
-  return res.json();
+  // Never call the API during prerendering: with Cache Components this fetch
+  // would hang at build time and then reject.
+  await connection();
+
+  try {
+    const res = await fetch(apiUrl("/latestBooks"), { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    // A dead API must not take the whole home page down.
+    console.error("latestBooks fetch failed:", error);
+    return [];
+  }
 };
 
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import React, { Suspense } from "react";
+import { apiUrl } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "BookNook | All Books",
@@ -16,12 +17,10 @@ type Book = {
   image: string;
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL 
-
 // Fetch kora fail korle page crash korbe na, error state dekhabe
 const getBooks = async (): Promise<{ books: Book[]; failed: boolean }> => {
   try {
-    const res = await fetch(`${API}/allbooks`, { cache: "no-store" });
+    const res = await fetch(apiUrl("/allbooks"), { cache: "no-store" });
 
     if (!res.ok) {
       console.error("allbooks fetch failed:", res.status);
