@@ -300,13 +300,12 @@ export default function MyBooksPage() {
     <section className="mx-auto max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">My Books</h1>
-        <Button
-          nativeButton={false}
-          render={<Link href="/add-book" />}
-          className="bg-[#D97706] text-white hover:bg-orange-700"
+        <Link
+          href="/new"
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-[#D97706] px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-700"
         >
           Add New Book
-        </Button>
+        </Link>
       </div>
 
       {books.length === 0 ? (
