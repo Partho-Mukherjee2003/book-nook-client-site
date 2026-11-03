@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import React, { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "All Books",
+  title: "BookNook | All Books",
 };
 
 // Book type
@@ -16,12 +15,24 @@ type Book = {
   image: string;
 };
 
-const getBooks = async (): Promise<Book[]> => {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/allbooks`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Failed to fetch books");
-  return res.json();
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+// Fetch kora fail korle page crash korbe na, error state dekhabe
+const getBooks = async (): Promise<{ books: Book[]; failed: boolean }> => {
+  try {
+    const res = await fetch(`${API}/allbooks`, { cache: "no-store" });
+
+    if (!res.ok) {
+      console.error("allbooks fetch failed:", res.status);
+      return { books: [], failed: true };
+    }
+
+    const data = await res.json();
+    return { books: Array.isArray(data) ? data : [], failed: false };
+  } catch (error) {
+    console.error("allbooks fetch error:", error);
+    return { books: [], failed: true };
+  }
 };
 
 /* ------------------------------------------------------------------
@@ -51,7 +62,34 @@ const BooksSkeleton = () => {
    Data fetching component (async) — wrapped in <Suspense> below
 ------------------------------------------------------------------ */
 const BooksGrid = async () => {
-  const books = await getBooks();
+  const { books, failed } = await getBooks();
+
+  if (failed) {
+    return (
+      <div className="mt-10 rounded-xl border border-[#166534]/10 bg-white p-10 text-center shadow-sm">
+        <h3 className="text-lg font-bold text-[#166534]">
+          Could not load the books
+        </h3>
+        <p className="mt-2 text-sm text-[#1F2937]/70">
+          Please refresh the page or try again in a moment.
+        </p>
+        <Link
+          href="/AllBooks"
+          className="mt-5 inline-flex items-center justify-center rounded-lg bg-[#D97706] px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-orange-700"
+        >
+          Try again
+        </Link>
+      </div>
+    );
+  }
+
+  if (books.length === 0) {
+    return (
+      <p className="mt-10 rounded-xl border border-[#166534]/10 bg-white py-14 text-center text-[#1F2937]/70 shadow-sm">
+        No books have been added yet.
+      </p>
+    );
+  }
 
   return (
     <>
@@ -69,12 +107,14 @@ const BooksGrid = async () => {
             {/* Book Cover */}
             <div className="relative h-64 w-full overflow-hidden bg-[#F3EFE6]">
               {typeof book.image === "string" && book.image ? (
-                <Image
+                // Plain <img>: je kono host-er image (unsplash, imgbb ityadi) kaj korbe
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={book.image}
                   alt={book.title}
-                  fill
-                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-sm text-[#1F2937]/40">
