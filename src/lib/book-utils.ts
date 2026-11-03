@@ -1,5 +1,5 @@
 import { authClient } from "@/lib/auth-client";
-export const API = "http://localhost:5000";
+export const API = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export const CATEGORIES = ["Fiction", "Science", "History", "Kids", "Others"];
 

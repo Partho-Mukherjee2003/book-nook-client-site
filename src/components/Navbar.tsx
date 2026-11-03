@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 
@@ -45,7 +45,7 @@ function Avatar({ user, size }: { user: AvatarUser; size: string }) {
   );
 }
 
-export default function Navbar() {
+function NavbarContent() {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -451,5 +451,18 @@ export default function Navbar() {
         </nav>
       )}
     </header>
+  );
+}
+
+// usePathname() runtime-e jana jay, tai Suspense-er bhitore rakha lagbe
+export default function Navbar() {
+  return (
+    <Suspense
+      fallback={
+        <header className="sticky top-0 z-50 h-16 w-full border-b border-white/10 bg-[#166534] lg:h-20" />
+      }
+    >
+      <NavbarContent />
+    </Suspense>
   );
 }

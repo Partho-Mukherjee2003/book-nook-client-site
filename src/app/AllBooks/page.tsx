@@ -17,9 +17,8 @@ type Book = {
 };
 
 const getBooks = async (): Promise<Book[]> => {
-  const res = await fetch("http://localhost:5000/allbooks", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/allbooks`, {
     cache: "no-store",
-    
   });
   if (!res.ok) throw new Error("Failed to fetch books");
   return res.json();

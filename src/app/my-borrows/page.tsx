@@ -24,7 +24,7 @@ type Borrow = {
   status: "borrowed" | "returned";
 };
 
-const API = "http://localhost:5000";
+const API = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 const formatDate = (date: string) =>
   new Date(date).toLocaleDateString("en-GB", {

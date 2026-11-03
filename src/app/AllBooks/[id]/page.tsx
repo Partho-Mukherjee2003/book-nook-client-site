@@ -27,7 +27,7 @@ const getBook = async (id: string): Promise<Book> => {
 
 
 
-  const res = await fetch(`http://localhost:5000/allbooks/${id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/allbooks/${id}`, {
     headers: {
       authorization: `Bearer ${token?.token}`,
     },
