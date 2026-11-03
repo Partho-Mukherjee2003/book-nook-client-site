@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ const inputClass =
   "h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30";
 const labelClass = "font-semibold text-[#1F2937]";
 
-// Login-er por kothay jabe: /login?redirect=/book/123 hole oikhane, na hole Home
+// Login-er por kothay jabe: /login?redirect=/AllBooks/123 hole oikhane, na hole Home
 const getRedirectPath = () => {
   const redirect = new URLSearchParams(window.location.search).get("redirect");
   // Shudhu nijer site-er path allow koro (open redirect theke bachar jonno)
@@ -24,9 +23,15 @@ const getRedirectPath = () => {
 };
 
 const LogInPage = () => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Already logged in hole login page-e thakar dorkar nei
+  const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (session?.user) window.location.replace(getRedirectPath());
+  }, [session]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,9 +49,8 @@ const LogInPage = () => {
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       toast.error("Login failed", {
         description:
           error.message || "Invalid email or password. Please try again.",
@@ -58,8 +62,9 @@ const LogInPage = () => {
       description: "You have logged in successfully.",
     });
 
-    router.push(getRedirectPath());
-    router.refresh();
+    // Full page reload: notun cookie shoho page load hoy, tai proxy ar
+    // server component session dekhte pay. router.push() production-e atke jay.
+    window.location.href = getRedirectPath();
   };
 
   const handleGoogleLogin = async () => {
