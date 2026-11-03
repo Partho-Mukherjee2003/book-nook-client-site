@@ -13,13 +13,41 @@ const inputClass =
   "h-11 focus-visible:border-[#166534] focus-visible:ring-[#166534]/30";
 const labelClass = "font-semibold text-[#1F2937]";
 
-// Login-er por kothay jabe: /login?redirect=/AllBooks/123 hole oikhane, na hole Home
+// Login-er por toast dekhanor jonno flag (page reload-er por AuthToast eta pore)
+const AUTH_TOAST_KEY = "auth-toast";
+
+const setAuthToast = (method: "email" | "google") => {
+  try {
+    sessionStorage.setItem(AUTH_TOAST_KEY, method);
+  } catch {}
+};
+
+const clearAuthToast = () => {
+  try {
+    sessionStorage.removeItem(AUTH_TOAST_KEY);
+  } catch {}
+};
+
+// Login-er por kothay jabe: /login?redirect=/AllBooks hole oikhane, na hole Home
 const getRedirectPath = () => {
   const redirect = new URLSearchParams(window.location.search).get("redirect");
+
   // Shudhu nijer site-er path allow koro (open redirect theke bachar jonno)
-  return redirect && redirect.startsWith("/") && !redirect.startsWith("//")
-    ? redirect
-    : "/";
+  if (
+    !redirect ||
+    !redirect.startsWith("/") ||
+    redirect.startsWith("//") ||
+    redirect.startsWith("/\\")
+  ) {
+    return "/";
+  }
+
+  // Login/Register-e pathale loop hoy
+  if (redirect.startsWith("/login") || redirect.startsWith("/register")) {
+    return "/";
+  }
+
+  return redirect;
 };
 
 const LogInPage = () => {
@@ -33,53 +61,78 @@ const LogInPage = () => {
     if (session?.user) window.location.replace(getRedirectPath());
   }, [session]);
 
+  // Login page-e ashle purano flag muche felo. Google theke error hole message dekhao
+  useEffect(() => {
+    clearAuthToast();
+
+    const error = new URLSearchParams(window.location.search).get("error");
+    if (error) {
+      toast.error("Google login failed", {
+        id: "google-login-error",
+        description: "Could not sign in with Google. Please try again.",
+      });
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
-    const formValues = Object.fromEntries(formData.entries());
-
-    const email = formValues.email as string;
-    const password = formValues.password as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
     setLoading(true);
 
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({ email, password });
 
-    if (error) {
+      if (error) {
+        setLoading(false);
+        toast.error("Login failed", {
+          description:
+            error.message || "Invalid email or password. Please try again.",
+        });
+        return;
+      }
+
+      // Toast reload-er por AuthToast dekhabe
+      setAuthToast("email");
+
+      // Full page reload: notun cookie shoho page load hoy, tai proxy ar
+      // server component session dekhte pay.
+      window.location.href = getRedirectPath();
+    } catch {
       setLoading(false);
       toast.error("Login failed", {
-        description:
-          error.message || "Invalid email or password. Please try again.",
+        description: "Could not reach the server. Please try again.",
       });
-      return;
     }
-
-    toast.success("Welcome back!", {
-      description: "You have logged in successfully.",
-    });
-
-    // Full page reload: notun cookie shoho page load hoy, tai proxy ar
-    // server component session dekhte pay. router.push() production-e atke jay.
-    window.location.href = getRedirectPath();
   };
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
+    setAuthToast("google");
 
-    const { error } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: getRedirectPath(),
-    });
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: getRedirectPath(),
+        errorCallbackURL: "/login",
+      });
 
-    // Success hole browser Google-er page-e chole jay, tai ekhane shudhu error handle
-    if (error) {
+      // Success hole browser Google-er page-e chole jay, tai ekhane shudhu error handle
+      if (error) {
+        clearAuthToast();
+        setGoogleLoading(false);
+        toast.error("Google login failed", {
+          description: error.message || "Could not sign in with Google.",
+        });
+      }
+    } catch {
+      clearAuthToast();
       setGoogleLoading(false);
       toast.error("Google login failed", {
-        description: error.message || "Could not sign in with Google.",
+        description: "Could not reach the server. Please try again.",
       });
     }
   };

@@ -4,13 +4,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { apiFetch, ApiError } from "@/lib/api";
-import {
-  CATEGORIES,
-  SessionExpiredError,
-  uploadImage,
-  getAuthHeaders,
-} from "@/lib/book-utils";
+import { apiFetch } from "@/lib/api";
+import { CATEGORIES, uploadImage } from "@/lib/book-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,17 +57,14 @@ export default function AddBookPage() {
       // 1. upload image to imgbb
       const imageUrl = await uploadImage(file);
 
-      // 2. get a fresh JWT for the Authorization header
-      const authHeaders = await getAuthHeaders();
-
-      // 3. save the book. These keys must match the Express schema exactly.
+      // 2. save the book. These keys must match the Express schema exactly.
       const data = await apiFetch<{
         success?: boolean;
         message?: string;
         insertedId?: string;
       }>("/my-books", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
           author: author.trim(),
@@ -80,6 +72,7 @@ export default function AddBookPage() {
           image: imageUrl,
           description: description.trim(),
           userName: user.name,
+          userEmail: user.email,
         }),
       });
 
@@ -102,21 +95,6 @@ export default function AddBookPage() {
         toast.error(data.message || "Failed to add the book.");
       }
     } catch (error) {
-      // An expired/missing JWT or a 401 from Express both mean "log in again".
-      if (
-        error instanceof SessionExpiredError ||
-        (error instanceof ApiError && error.status === 401)
-      ) {
-        toast.error("Your session has expired.", {
-          description: "Please log in again to add a book.",
-          action: {
-            label: "Log in",
-            onClick: () => router.push("/login?redirect=/new"),
-          },
-        });
-        return;
-      }
-
       toast.error(
         error instanceof Error ? error.message : "Something went wrong.",
       );

@@ -5,12 +5,7 @@ import Link from "next/link";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import {
-  CATEGORIES,
-  SessionExpiredError,
-  uploadImage,
-  getAuthHeaders,
-} from "@/lib/book-utils";
+import { CATEGORIES, uploadImage } from "@/lib/book-utils";
 import { apiFetch, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,10 +56,12 @@ const formatDate = (date: string) =>
 /* ---------------------------- Edit form (modal) ---------------------------- */
 function EditBookDialog({
   book,
+  email,
   onClose,
   onSaved,
 }: {
   book: MyBook;
+  email: string;
   onClose: () => void;
   onSaved: (updated: MyBook) => void;
 }) {
@@ -92,13 +89,12 @@ function EditBookDialog({
       setSaving(true);
       // upload a new image only if the user picked one, otherwise keep the old URL
       const image = file ? await uploadImage(file) : book.image;
-      const authHeaders = await getAuthHeaders();
 
       await apiFetch<{ success?: boolean; message?: string }>(
-        `/my-books/${book._id}`,
+        `/my-books/${book._id}?email=${encodeURIComponent(email)}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json", ...authHeaders },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, author, category, image, description }),
         },
       );
@@ -242,7 +238,7 @@ export default function MyBooksPage() {
     if (!isPending && !session?.user) router.push("/login"); // change to your login route
   }, [isPending, session, router]);
 
-  // Load only the logged-in user's books (server reads the email from the JWT)
+  // Load only the logged-in user's books (filtered by email)
   useEffect(() => {
     if (!email) return;
 
@@ -250,19 +246,12 @@ export default function MyBooksPage() {
 
     (async () => {
       try {
-        const authHeaders = await getAuthHeaders();
-        const data = await apiFetch<MyBook[]>("/my-books", {
-          headers: authHeaders,
-        });
+        const data = await apiFetch<MyBook[]>(
+          `/my-books?email=${encodeURIComponent(email)}`,
+        );
         if (active) setBooks(Array.isArray(data) ? data : []);
-      } catch (error) {
-        if (active) {
-          toast.error(
-            error instanceof SessionExpiredError
-              ? "Your session has expired. Please log in again."
-              : "Could not load your books.",
-          );
-        }
+      } catch {
+        if (active) toast.error("Could not load your books.");
       } finally {
         if (active) setLoading(false);
       }
@@ -274,15 +263,14 @@ export default function MyBooksPage() {
   }, [email]);
 
   const handleDelete = async () => {
-    if (!deleting) return;
+    if (!deleting || !email) return;
 
     try {
       setDeleteLoading(true);
-      const authHeaders = await getAuthHeaders();
-      await apiFetch(`/my-books/${deleting._id}`, {
-        method: "DELETE",
-        headers: authHeaders,
-      });
+      await apiFetch(
+        `/my-books/${deleting._id}?email=${encodeURIComponent(email)}`,
+        { method: "DELETE" },
+      );
 
       // remove from the UI (it's already removed from the database)
       setBooks((prev) => prev.filter((b) => b._id !== deleting._id));
@@ -394,6 +382,7 @@ export default function MyBooksPage() {
         <EditBookDialog
           key={editing._id}
           book={editing}
+          email={email}
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
             setBooks((prev) =>

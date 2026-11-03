@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import BorrowBooks from "@/app/borrow/BorrowBooks";
-import { auth } from "@/lib/auth";
 import { apiUrl } from "@/lib/api";
 import BookDetailsLoading from "./loading";
 import { RetryButton } from "./retry-button";
@@ -37,21 +35,13 @@ const OBJECT_ID = /^[a-f\d]{24}$/i;
 const getBook = async (id: string): Promise<BookResult> => {
   if (!OBJECT_ID.test(id)) return { status: "not-found" };
 
-  let token: string | undefined;
-  try {
-    const jwt = await auth.api.getToken({ headers: await headers() });
-    token = jwt?.token;
-  } catch {
-    token = undefined;
-  }
-
   try {
     const res = await fetch(apiUrl(`/allbooks/${id}`), {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
       cache: "no-store",
     });
 
-    if (res.status === 400 || res.status === 404) return { status: "not-found" };
+    if (res.status === 400 || res.status === 404)
+      return { status: "not-found" };
     if (res.status === 401) return { status: "unauthorized" };
 
     if (!res.ok) {
@@ -104,8 +94,8 @@ const StatePanel = ({
    Data component — wrapped in Suspense so nothing runs while prerendering
 ------------------------------------------------------------------ */
 const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
-  // Stop prerendering here: cookies, JWTs and the book request must only run
-  // for a real request, otherwise `next build` fails with Cache Components.
+  // Stop prerendering here: the book request must only run for a real
+  // request, otherwise `next build` fails with Cache Components.
   await connection();
 
   const { id } = await params;
@@ -151,10 +141,7 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
 
   if (result.status === "error") {
     return (
-      <StatePanel
-        title="Could not load this book"
-        description={result.message}
-      >
+      <StatePanel title="Could not load this book" description={result.message}>
         <RetryButton />
         <Link
           href="/AllBooks"

@@ -1,17 +1,11 @@
-import { authClient } from "@/lib/auth-client";
 import { API_BASE_URL, apiUrl } from "@/lib/api";
 
 export { API_BASE_URL, apiUrl };
 
 export const CATEGORIES = ["Fiction", "Science", "History", "Kids", "Others"];
 
-/** Thrown when the Better Auth session/JWT is missing or has expired. */
-export class SessionExpiredError extends Error {
-  constructor() {
-    super("Your session has expired. Please log in again.");
-    this.name = "SessionExpiredError";
-  }
-}
+// TEMPORARY: getAuthHeaders()/SessionExpiredError were removed together with
+// the JWT layer. Re-add them when Bearer auth comes back.
 
 // Upload an image file to imgbb and return its public URL
 export async function uploadImage(file: File): Promise<string> {
@@ -38,12 +32,4 @@ export async function uploadImage(file: File): Promise<string> {
   }
 
   return data.data.url as string;
-}
-
-export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data, error } = await authClient.token();
-
-  if (error || !data?.token) throw new SessionExpiredError();
-
-  return { Authorization: `Bearer ${data.token}` };
 }
