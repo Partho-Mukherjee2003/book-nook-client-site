@@ -27,6 +27,7 @@ export default function AddBookPage() {
   const [author, setAuthor] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [totalCopies, setTotalCopies] = useState("1");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [fileKey, setFileKey] = useState(0); // used to reset the file input
@@ -48,8 +49,13 @@ export default function AddBookPage() {
     e.preventDefault();
     if (!user || loading) return;
 
+    const copies = Number(totalCopies);
+
     if (!category) return toast.error("Please select a category.");
     if (!file) return toast.error("Please upload a book image.");
+    if (!Number.isInteger(copies) || copies < 1) {
+      return toast.error("Total copies must be a whole number (1 or more).");
+    }
 
     try {
       setLoading(true);
@@ -71,6 +77,7 @@ export default function AddBookPage() {
           category,
           image: imageUrl,
           description: description.trim(),
+          totalCopies: copies,
           userName: user.name,
           userEmail: user.email,
         }),
@@ -88,6 +95,7 @@ export default function AddBookPage() {
         setAuthor("");
         setCategory("");
         setDescription("");
+        setTotalCopies("1");
         setFile(null);
         setPreview(null);
         setFileKey((k) => k + 1);
@@ -164,6 +172,23 @@ export default function AddBookPage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="totalCopies">Total Copies</Label>
+          <Input
+            id="totalCopies"
+            type="number"
+            min={1}
+            step={1}
+            required
+            value={totalCopies}
+            onChange={(e) => setTotalCopies(e.target.value)}
+            placeholder="e.g. 5"
+          />
+          <p className="text-xs text-gray-500">
+            How many copies of this book are available to borrow.
+          </p>
         </div>
 
         <div className="space-y-2">

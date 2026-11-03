@@ -15,6 +15,8 @@ type Book = {
   description?: string;
   userName?: string;
   userEmail?: string;
+  totalCopies?: number;
+  availableCopies?: number;
 };
 
 type BookResult =
@@ -158,6 +160,10 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
   const initial = addedBy.charAt(0).toUpperCase();
   const hasImage = typeof book.image === "string" && book.image.length > 0;
 
+  const availableCopies = book.availableCopies ?? 0;
+  const totalCopies = book.totalCopies ?? 0;
+  const isAvailable = availableCopies > 0;
+
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-12">
       {/* ---------------- Cover ---------------- */}
@@ -233,6 +239,34 @@ const BookDetails = async ({ params }: { params: Promise<{ id: string }> }) => {
               <dd className="mt-1 truncate text-sm font-semibold text-[#1F2937]">
                 {book.author}
               </dd>
+            </div>
+
+            {/* Available copies */}
+            <div className="col-span-2 flex items-center justify-between gap-3 rounded-xl border border-[#166534]/10 bg-[#FDFBF7] p-4">
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#1F2937]/50">
+                  Available copies
+                </dt>
+                <dd
+                  className={`mt-1 text-sm font-semibold ${
+                    isAvailable ? "text-[#166534]" : "text-red-600"
+                  }`}
+                >
+                  {isAvailable
+                    ? `${availableCopies} of ${totalCopies} copies available`
+                    : "Not available. All copies are borrowed."}
+                </dd>
+              </div>
+
+              <span
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                  isAvailable
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-600"
+                }`}
+              >
+                {isAvailable ? "In stock" : "Out of stock"}
+              </span>
             </div>
           </dl>
 

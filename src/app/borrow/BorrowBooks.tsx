@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,8 @@ type Book = {
   category: string;
   image: string;
   description?: string;
+  totalCopies?: number;
+  availableCopies?: number;
 };
 
 const LOAN_DAYS = 14;
@@ -44,6 +47,10 @@ const BorrowBooks = ({ book }: { book: Book }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Check if book has available copies
+  const availableCopies = book.availableCopies ?? 0;
+  const isAvailable = availableCopies > 0;
+
   // Dates shown in the modal (recomputed each render so they're always "today")
   const borrowDate = new Date();
   const returnDate = new Date();
@@ -54,7 +61,7 @@ const BorrowBooks = ({ book }: { book: Book }) => {
       toast.error("Please log in to borrow this book.", {
         action: {
           label: "Log in",
-          onClick: () => router.push("/login"), // change to your login route
+          onClick: () => router.push("/login"),
         },
       });
       return;
@@ -86,23 +93,28 @@ const BorrowBooks = ({ book }: { book: Book }) => {
         body: JSON.stringify(borrowData),
       });
 
-      if (data.insertedId) {
+      if (data.insertedId || data.success) {
         setOpen(false);
+        // Page refresh to update available copies counter on the UI
+        router.refresh();
+
         toast.success("Book borrowed successfully!", {
           description: `Please return "${book.title}" by ${formatDate(returnDate)}.`,
           action: {
             label: "My Borrows",
-            onClick: () => router.push("/my-borrows"), // change to your route
+            onClick: () => router.push("/my-borrows"),
           },
         });
       } else {
-        // shows server messages such as "You have already borrowed this book"
+        // Show server messages (e.g. "Not available" or "Already borrowed")
         toast.error(data.message || "Failed to borrow the book.");
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        // 400/404/409 from Express already carry a readable message
+        // Handles 400/404/409 errors directly from backend response
         toast.error(error.message || "Failed to borrow the book.");
+      } else if (error instanceof Error) {
+        toast.error(error.message);
       } else {
         toast.error("Could not reach the server.", {
           description: "Please check your connection and try again.",
@@ -117,11 +129,12 @@ const BorrowBooks = ({ book }: { book: Book }) => {
     <div>
       <Button
         type="button"
-        className="h-12 w-full gap-2 bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700"
+        disabled={!isAvailable}
+        className="h-12 w-full gap-2 bg-[#D97706] text-base font-semibold text-white shadow-md shadow-[#D97706]/25 hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none"
         onClick={handleOpen}
       >
         <BookOpen className="h-5 w-5" />
-        Borrow This Book
+        {!isAvailable ? "Not Available" : "Borrow This Book"}
       </Button>
 
       <Dialog open={open} onOpenChange={(v) => !loading && setOpen(v)}>
@@ -148,9 +161,14 @@ const BorrowBooks = ({ book }: { book: Book }) => {
                   {book.title}
                 </h3>
                 <p className="text-sm text-gray-600">by {book.author}</p>
-                <span className="inline-block rounded-full bg-[#D97706]/10 px-2.5 py-0.5 text-xs font-medium text-[#D97706]">
-                  {book.category}
-                </span>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="inline-block rounded-full bg-[#D97706]/10 px-2.5 py-0.5 text-xs font-medium text-[#D97706]">
+                    {book.category}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({availableCopies} copies left)
+                  </span>
+                </div>
               </div>
             </div>
 
