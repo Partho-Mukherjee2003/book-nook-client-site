@@ -5,6 +5,9 @@ import BorrowBooks from "@/app/borrow/BorrowBooks";
 import { apiUrl } from "@/lib/api";
 import BookDetailsLoading from "./loading";
 import { RetryButton } from "./retry-button";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
 
 type Book = {
   _id: string;
@@ -35,10 +38,24 @@ const OBJECT_ID = /^[a-f\d]{24}$/i;
  * so a dead API renders a friendly panel instead of crashing the route.
  */
 const getBook = async (id: string): Promise<BookResult> => {
+  //console.log("getBook called from this file:", id);
+  //**************************Jwt token retrive ******************************* */
+  const jwtToken = await auth.api.getToken({
+    headers : await headers(),
+  })
+  // console.log(jwtToken?.token)
+
+
+
+
   if (!OBJECT_ID.test(id)) return { status: "not-found" };
 
   try {
     const res = await fetch(apiUrl(`/allbooks/${id}`), {
+      // JWT functionality *************************************
+      headers: {
+        authorization: `Bearer ${jwtToken?.token}`,
+      },
       cache: "no-store",
     });
 

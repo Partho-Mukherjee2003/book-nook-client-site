@@ -59,6 +59,10 @@ export default function AddBookPage() {
 
     try {
       setLoading(true);
+      /*JWT token retrieve in client component*/
+      const {data:tokenData,error } = await authClient.token()
+      const token = tokenData?.token
+      console.log(token)
 
       // 1. upload image to imgbb
       const imageUrl = await uploadImage(file);
@@ -70,7 +74,10 @@ export default function AddBookPage() {
         insertedId?: string;
       }>("/my-books", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
           title: title.trim(),
           author: author.trim(),

@@ -36,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+
 type MyBook = {
   _id: string;
   title: string;
@@ -87,6 +88,10 @@ function EditBookDialog({
 
     try {
       setSaving(true);
+
+/********************************** JWT Token Retrive  ****************************************/
+      const {data:tokenData,error} = await authClient.token();
+      const token = tokenData?.token
       // upload a new image only if the user picked one, otherwise keep the old URL
       const image = file ? await uploadImage(file) : book.image;
 
@@ -94,7 +99,10 @@ function EditBookDialog({
         `/my-books/${book._id}?email=${encodeURIComponent(email)}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ title, author, category, image, description }),
         },
       );
@@ -263,13 +271,20 @@ export default function MyBooksPage() {
   }, [email]);
 
   const handleDelete = async () => {
+    const { data: tokenData, error } = await authClient.token();
+    const token = tokenData?.token;
     if (!deleting || !email) return;
 
     try {
       setDeleteLoading(true);
       await apiFetch(
         `/my-books/${deleting._id}?email=${encodeURIComponent(email)}`,
-        { method: "DELETE" },
+        {
+          method: "DELETE",
+          headers: {
+            authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       // remove from the UI (it's already removed from the database)
